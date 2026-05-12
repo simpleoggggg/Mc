@@ -1,28 +1,24 @@
-# Use Node 18
-FROM node:18-slim
+# 1. Use a pre-built image that has both Node and Java 21
+FROM ghcr.io/railwayapp-templates/node-java-21:latest
 
-# Install Java 21 and unzip
-RUN apt-get update && apt-get install -y \
-    openjdk-21-jre-headless \
-    unzip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Railway usually puts apps in /app
+# 2. Set the working directory
 WORKDIR /app
 
-# Copy the zip from your GitHub repo
+# 3. Copy your zip file (Must be named panel.zip in GitHub)
 COPY panel.zip .
 
-# Unzip and set permissions
-# -o overwrites, -q is quiet
-RUN unzip -oq panel.zip && rm panel.zip && chmod -R 755 /app
+# 4. Install unzip, extract files, and cleanup
+USER root
+RUN apt-get update && apt-get install -y unzip && \
+    unzip -oq panel.zip && \
+    rm panel.zip && \
+    chmod -R 755 /app
 
-# Install Node dependencies
+# 5. Install Node dependencies
 RUN npm install --production
 
-# Memory limit for Railway's 512MB/1GB tiers
-ENV _JAVA_OPTIONS="-Xmx356M -Xms128M -XX:+UseSerialGC"
+# 6. Memory flags to stop the "OOM Kill" (512MB limit)
+ENV _JAVA_OPTIONS="-Xmx300M -Xms128M -XX:+UseSerialGC"
 
-# Start the panel
+# 7. Start your panel
 CMD ["node", "app.js"]
