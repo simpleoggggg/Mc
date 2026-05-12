@@ -1,28 +1,29 @@
-# 1. Use an image with Java 21 already installed
 FROM eclipse-temurin:21-jre-jammy
 
-# 2. Install Node.js 18 and Unzip
+# 1. Install Node and Unzip
 RUN apt-get update && apt-get install -y \
-    curl \
-    unzip \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+    curl unzip && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-# 3. Setup Working Directory
 WORKDIR /app
 
-# 4. Copy your zip (Matching 'panel.zip' exactly)
+# 2. Copy and Unzip
 COPY panel.zip .
-
-# 5. Extract and cleanup
 RUN unzip -oq panel.zip && rm panel.zip
 
-# 6. Install Node dependencies
+# 3. THE FIX: Force app.js to listen on 0.0.0.0 instead of localhost
+# This uses 'sed' to find "localhost" or "127.0.0.1" and replace it
+RUN sed -i 's/localhost/0.0.0.0/g' app.js && \
+    sed -i 's/127.0.0.1/0.0.0.0/g' app.js
+
+# 4. Install dependencies
 RUN npm install --production
 
-# 7. Memory limits for Railway Trial (512MB)
+# 5. Environment & Memory
 ENV _JAVA_OPTIONS="-Xmx300M -Xms128M -XX:+UseSerialGC"
+ENV PORT=8080
 
-# 8. Start the panel
+# 6. Start
 CMD ["node", "app.js"]
